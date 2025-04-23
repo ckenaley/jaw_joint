@@ -22,8 +22,12 @@ dat <- read_csv(f,id="file") %>%
 
 
 dat %>% 
-  ggplot(aes(ang,g,col=trial))+
-  geom_point()+facet_wrap(.~fish)
+  mutate(f=g/1000*9.81,specimen=gsub("\\w*(\\d)","\\1",fish)) %>% 
+  group_by(fish,species,trial,specimen) %>% 
+  summarize(stiff=coef(lm(f~ang))[2]) %>% 
+  ggplot(aes(specimen,stiff))+
+  geom_boxplot()+facet_wrap(.~species,scales="free")
+  
 
 #dat_sum <- 
 

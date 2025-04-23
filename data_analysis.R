@@ -23,7 +23,7 @@ arrange(ang,fish,species,trial)
 
 
 dat %>% 
-  ggplot(aes(ang,g,col=trial))+
+  ggplot(aes(ang,f,col=trial))+
   geom_point()+facet_wrap(.~fish)
 
 #dat_sum <- 
