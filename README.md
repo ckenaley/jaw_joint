@@ -74,7 +74,7 @@ stiffness from trial-level regressions, generates manuscript plots, and
 runs species-level contrasts against the rat comparison group. Requires
 the following data:
 
-- Files contained in stiffness.zip: Each file contains raw mechanical
+- Files contained in data/stiffness: Each file contains raw mechanical
   testing output from passive jaw-joint loading trials. Each row
   represents one time point during a test. The dataset includes elapsed
   time, actuator position or step information, load-cell strain output,
