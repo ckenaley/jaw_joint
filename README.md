@@ -1,0 +1,92 @@
+read me
+================
+
+Code and data for Ebeling et al. (202X).
+
+All analyses were commenced with code contained in several R scripts.
+The following outlines each script’s purpose and the inputs and outputs.
+
+## joint_angle.R
+
+This script computes gape, symphyseal angle, and lateral expansion from
+digitized 3D landmarks. The processed curves are smoothed and exported
+(as spec_data_for_model.RDS) for downstream linkage-model analysis (by
+linkages.R). Requires the following data:
+
+- `bass_kinematic_data.csv`: a comma-separated file containing
+  three-dimensional landmark coordinate data from feeding strikes of
+  largemouth bass. Each row represents one digitized anatomical landmark
+  in one video frame from one feeding trial. Coordinates were
+  reconstructed from synchronized camera views and are organized by
+  individual fish, trial, frame, landmark identity, and
+  three-dimensional position.
+
+  - fish: Individual fish identifier.
+  - trial: Feeding trial identifier for each fish.
+  - frame: Re-indexed frame number within the analyzed sequence.
+  - frame_raw: Original video frame number prior to re-indexing.
+  - time_ms: Elapsed time, in milliseconds, from the first analyzed
+    frame of the trial.
+  - pt_num: Numeric landmark identifier.
+  - landmark: Anatomical landmark abbreviation.-
+  - x: Three-dimensional x-coordinate of the landmark (in cm).
+  - y: Three-dimensional y-coordinate of the landmark (in cm).
+  - z: Three-dimensional z-coordinate of the landmark (in cm).
+
+## linkages.R
+
+This contains the largemouth bass linkage model workflow and sources
+three other scripts:
+
+- linkage_helpers.R: Custom functions for workflow.
+- linkage_solver.R: Custom functions that solve the linkage model.
+- volume.R: Custom functions that estimage volume from model solutions.
+
+The worflow reads CT-derive landmarks, recasts them into a reference
+plane, scales the geometry to live specimens, drives the linkage with
+empirical feeding kinematics, estimates volum, and compares modeled
+outputs with live data. It also produces many of the figures in the
+paper. Requires the following data:
+
+- MCZ48917_Micropterus_nigricans.ply: A PLY mesh file of a largmouth
+  bass.
+- MCZ48917_Micropterus_nigricans.ply.csv: A CSV file of the landmarks
+  (script optionally avoid digitizing the PLY file). Each row represents
+  one anatomical landmark used to parameterize the three-dimensional
+  linkage model. Landmark coordinates were used to define joint
+  positions, reference axes, driver points, and vertices for estimating
+  modeled cavity-volume change.
+- spec_data_for_model.RDS: This file contains smoothed mean kinematic
+  trajectories from largemouth bass feeding strikes produced the
+  jaw_angle.R. Each row gives the mean value of one kinematic variable
+  at a relative time point scaled to peak gape. Relative time is
+  reported as per_open, where 1.00 corresponds to peak gape. Variables
+  include gape angle (“jaw_angle”), mandibular symphyseal angle
+  (“sym_angle”), and lateral expansion (“lat_exp”). Angle variables are
+  reported in degrees, whereas lat_exp is reported as percent change
+  from the start of the strike.
+
+## stiffness.R
+
+This script reads force/displacement trials, converts angular
+displacement and moment-arm data into torque, estimates angular
+stiffness from trial-level regressions, generates manuscript plots, and
+runs species-level contrasts against the rat comparison group. Requires
+the following data:
+
+- Files contained in stiffness.zip: Each file contains raw mechanical
+  testing output from passive jaw-joint loading trials. Each row
+  represents one time point during a test. The dataset includes elapsed
+  time, actuator position or step information, load-cell strain output,
+  and measured load. These data were used to calculate force, torque,
+  and angular stiffness of the mandibular symphyseal joint in fishes or
+  the temporomandibular joint in the rat reference specimen.
+- moment_lengths.csv: This file contains specimen-level morphological
+  and mechanical measurements used in the angular stiffness analyses.
+  Each row represents one specimen. The dataset includes jaw length
+  (cm), the moment-arm length (cm) used to convert force measurements to
+  torque, and a body-size variable. For fish specimens, body size is
+  reported as body length (cm); for the laboratory rat reference
+  specimen, body size is reported as body mass (kg).
+
+Any inquiries concerning data and the analysis can be made to . . .
