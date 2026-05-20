@@ -3,9 +3,11 @@ output: github_document
 title: "read me"
 ---
 
-Code and data for Ebeling et al. (202X).
+Code and data for XXXX et al. (202X).
 
 All analyses were commenced with code contained in several R scripts. The following outlines each script's purpose and the inputs and outputs.
+
+The data directory is supplied here as a compressed .zip file and must by uncompressed. 
 
 ## joint_angle.R
 
@@ -41,14 +43,19 @@ The worflow reads CT-derive landmarks, recasts them into a reference plane, scal
 
 ## stiffness.R 
  
-This script reads force/displacement trials, converts angular displacement and moment-arm data into torque, estimates angular stiffness from trial-level regressions, generates manuscript plots, and runs species-level contrasts against the rat comparison group. Requires the following data:
+This script reads force/displacement trials from passive jaw-joint loading experiments, converts force and angular displacement data into torque-angle curves, estimates angular stiffness from trial-level regressions, generates manuscript plots, and runs statistical analyses comparing actinopterygian mandibular symphyseal joints with the rat temporomandibular joint reference. Two stiffness regions are estimated from each trial: an initial low-angle interval from 0--5° and a mid-angle interval from 5--20°. The script first analyzes stiffness values using linear mixed-effects models with taxon, curve segment, and their interaction as fixed effects and specimen identity as a random effect. Follow-up Dunnett-adjusted contrasts compare each fish taxon with the rat reference separately for the low- and mid-angle intervals.
 
-  - Files contained in data/stiffness: Each  file contains raw mechanical testing output from passive jaw-joint loading trials. Each row represents one time point during a test. The dataset includes elapsed time, actuator position or step information, load-cell strain output, and measured load. These data were used to calculate force, torque, and angular stiffness of the mandibular symphyseal joint in fishes or the temporomandibular joint in the rat reference specimen.
-  - moment_lengths.csv: This file contains specimen-level morphological and mechanical measurements used in the angular stiffness analyses. Each row represents one specimen. The dataset includes jaw length (cm), the moment-arm length (cm) used to convert force measurements to torque, and a body-size variable. For fish specimens, body size is reported as body length (cm); for the laboratory rat reference specimen, body size is reported as body mass (kg).
-  
-  
+The script also runs phylogenetic mixed models using `MCMCglmm` to evaluate whether the comparison between actinopterygian mandibular symphyseal joints and the rat TMJ reference is robust to phylogenetic non-independence. These models use a time-scaled tree containing the four fish species and the rat reference taxon. Joint system, coded as mandibular symphyseal joint for fishes and temporomandibular joint for the rat, is included as a fixed effect, with phylogenetic species identity and specimen identity included as random effects. Separate phylogenetic models are fit for the low- and mid-angle stiffness intervals.
+
+Requires the following data:
+
+  - Files contained in `data/stiffness`: Each file contains raw mechanical testing output from passive jaw-joint loading trials. Each row represents one time point during a test. The dataset includes elapsed time, actuator position or step information, load-cell strain output, and measured load. These data were used to calculate force, torque, and angular stiffness of the mandibular symphyseal joint in fishes or the temporomandibular joint in the rat reference specimen.
+
+  - `moment_lengths.csv`: This file contains specimen-level morphological and mechanical measurements used in the angular stiffness analyses. Each row represents one specimen. The dataset includes jaw length (cm), the moment-arm length (cm) used to convert force measurements to torque, and a body-size variable. For fish specimens, body size is reported as body length (cm); for the laboratory rat reference specimen, body size is reported as body mass (kg).
+
+  - `tt_sp.nwk`: A time-scaled Newick-format phylogeny containing the taxa included in the stiffness analysis: largemouth bass (`Micropterus_nigricans`), yellow perch (`Perca_flavescens`), white perch (`Morone_americana`), chain pickerel (`Esox_niger`), and the rat reference taxon (`Rattus_norvegicus`). This tree is used only for the phylogenetic mixed models. Tip labels must match the species names used internally by the script.
 
 
-Any inquiries concerning data and the analysis can be made to . . .
+Any inquiries concerning data and the analysis can be made to XXXX
 
 

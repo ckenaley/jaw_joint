@@ -3,9 +3,7 @@
 #
 # Functions in this file resolve named and derived hull vertices,
 # estimate convex-hull volumes for buccal compartments, and summarize
-# volume changes along the anteroposterior axis. Function comments use
-# roxygen-style tags so the file can be converted into package
-# documentation later if desired.
+# volume changes along the anteroposterior axis. 
 # ============================================================
 
 suppressPackageStartupMessages({

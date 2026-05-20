@@ -4,13 +4,22 @@
 # This script reads force/displacement trials, converts angular
 # displacement and moment-arm data into torque, estimates angular
 # stiffness from trial-level regressions, generates manuscript plots,
-# and runs species-level contrasts against the rat comparison group.
+# and runs species-level contrasts against the rat comparison group and  
+# Phylogenetic MCMCglmm  analysis that tests MSJ vs TMJ as a group-level
+# contrast while accounting for phylogenetic covariance among taxa and 
+# repeated measurements within specimen.
 # ============================================================
 
+library(tidyverse)
 library(ggthemes)
 library(multcomp)
 library(lme4)
-library(tidyverse)
+library(lmerTest)
+library(emmeans)
+library(ape)
+library(MCMCglmm)
+library(coda)
+
 # ------------------------------------------------------------
 # Inputs
 # ------------------------------------------------------------
@@ -195,3 +204,206 @@ library(emmeans)
 
 emm <- emmeans(mod, ~ name | position)
 pairs(emm, adjust = "dunnett", ref = "Rat")
+
+# ------------------------------------------------------------
+# Phylogenetic MCMCglmm  analysis
+#
+# This model tests MSJ vs TMJ as a group-level contrast while
+# accounting for phylogenetic covariance among taxa and repeated
+# measurements within specimen.
+# ------------------------------------------------------------
+
+name_levels <- c(
+  "Rat",
+  "LM bass",
+  "Yellow perch",
+  "White perch",
+  "Chain pickerel"
+)
+
+phylo_name_key <- tibble(
+  name = name_levels,
+  animal = c(
+    "Rattus_norvegicus",
+    "Micropterus_nigricans",
+    "Perca_flavescens",
+    "Morone_americana",
+    "Esox_niger"
+  )
+)
+# -----------------------------
+# Read and prepare tree
+# -----------------------------
+
+tree <- read.tree("data/tt_sp.nwk")
+
+tree$tip.label <- gsub(" ", "_", tree$tip.label)
+
+
+tree <- ladderize(tree)
+
+# -----------------------------
+# Add phylogenetic names to data
+# -----------------------------
+
+stiff_dat_phylo <- stiff_dat %>%
+  left_join(phylo_name_key, by = "name") %>%
+  mutate(
+    animal = as.character(animal),
+    joint_system = ifelse(animal == "Rattus_norvegicus", "TMJ", "MSJ"),
+    joint_system = factor(joint_system, levels = c("TMJ", "MSJ")),
+    fish = factor(fish),
+    position = factor(position, levels = c("low", "mid"))
+  ) %>%
+  filter(!is.na(animal)) %>% data.frame()
+
+
+
+# Build inverse phylogenetic covariance matrix
+inv_phylo <- inverseA(
+  tree,
+  nodes = "TIPS",
+  scale = TRUE
+)$Ainv
+
+# Clean and synchronize names
+phylo_levels <- rownames(inv_phylo)
+
+
+
+stiff_dat_phylo <- stiff_dat_phylo %>%
+  mutate(
+    animal = factor(animal, levels = phylo_levels),
+    fish = factor(fish)
+  ) %>%
+  droplevels()
+
+
+# -----------------------------
+# Scale response for MCMC stability
+# -----------------------------
+
+stiff_dat_phylo <- stiff_dat_phylo %>%
+  mutate(stiff_z = as.numeric(scale(stiff)))
+
+# -----------------------------
+# Prior
+# -----------------------------
+
+prior_z <- list(
+  G = list(
+    G1 = list(V = 1, nu = 0.002),  # phylogenetic species effect
+    G2 = list(V = 1, nu = 0.002)   # specimen effect
+  ),
+  R = list(V = 1, nu = 0.002)
+)
+
+# -----------------------------
+# Function to summarize posterior
+# -----------------------------
+
+posterior_summary <- function(mod) {
+  data.frame(
+    term = colnames(mod$Sol),
+    mean_z = colMeans(mod$Sol),
+    lower_95_z = apply(mod$Sol, 2, quantile, 0.025),
+    upper_95_z = apply(mod$Sol, 2, quantile, 0.975),
+    pMCMC = 2 * pmin(
+      colMeans(mod$Sol > 0),
+      colMeans(mod$Sol < 0)
+    )
+  )
+}
+
+# -----------------------------
+# Low-angle phylogenetic model
+# -----------------------------
+
+dat_low_phylo <- stiff_dat_phylo %>%
+  filter(position == "low") %>%
+  droplevels()
+
+mod_phylo_low_group <- MCMCglmm(
+  stiff_z ~ joint_system,
+  random = ~ animal + fish,
+  ginverse = list(animal = inv_phylo),
+  data = dat_low_phylo,
+  family = "gaussian",
+  prior = prior_z,
+  nitt = 530000,
+  burnin = 30000,
+  thin = 500,
+  verbose = FALSE
+)
+
+summary(mod_phylo_low_group)
+
+post_low_group <- posterior_summary(mod_phylo_low_group)
+
+post_low_group
+
+# -----------------------------
+# Mid-angle phylogenetic model
+# -----------------------------
+
+dat_mid_phylo <- stiff_dat_phylo %>%
+  filter(position == "mid") %>%
+  droplevels()
+
+mod_phylo_mid_group <- MCMCglmm(
+  stiff_z ~ joint_system,
+  random = ~ animal + fish,
+  ginverse = list(animal = inv_phylo),
+  data = dat_mid_phylo,
+  family = "gaussian",
+  prior = prior_z,
+  nitt = 530000,
+  burnin = 30000,
+  thin = 500,
+  verbose = FALSE
+)
+
+summary(mod_phylo_mid_group)
+
+post_mid_group <- posterior_summary(mod_phylo_mid_group)
+
+post_mid_group
+
+# -----------------------------
+# Diagnostics
+# -----------------------------
+
+plot(mod_phylo_low_group$Sol)
+plot(mod_phylo_low_group$VCV)
+
+plot(mod_phylo_mid_group$Sol)
+plot(mod_phylo_mid_group$VCV)
+
+autocorr(mod_phylo_low_group$Sol)
+autocorr(mod_phylo_low_group$VCV)
+
+autocorr(mod_phylo_mid_group$Sol)
+autocorr(mod_phylo_mid_group$VCV)
+
+effectiveSize(mod_phylo_low_group$Sol)
+effectiveSize(mod_phylo_low_group$VCV)
+
+effectiveSize(mod_phylo_mid_group$Sol)
+effectiveSize(mod_phylo_mid_group$VCV)
+
+# ------------------------------------------------------------
+# Save model summaries
+# ------------------------------------------------------------
+
+dir.create("manuscript/model_outputs", showWarnings = FALSE, recursive = TRUE)
+
+write_csv(stiff_dat_sum, "manuscript/model_outputs/stiffness_summary.csv")
+write_csv(post_low_group, "manuscript/model_outputs/mcmcglmm_low_phylo_group.csv")
+write_csv(post_mid_group, "manuscript/model_outputs/mcmcglmm_mid_phylo_group.csv")
+
+saveRDS(mod_l, "data/lmer_low.rds")
+saveRDS(mod_m, "data/lmer_mid.rds")
+saveRDS(mod, "data/lmer_position_name.rds")
+
+saveRDS(mod_phylo_low_group, "data/model_outputs/mcmcglmm_low_phylo_group.rds")
+saveRDS(mod_phylo_mid_group, "data/model_outputs/mcmcglmm_mid_phylo_group.rds")

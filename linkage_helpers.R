@@ -2,9 +2,7 @@
 # General linkage helpers, plotting utilities, and geometry tools
 #
 # This file contains reusable geometry, plotting, plane-casting, volume,
-# and trajectory helpers used by the linkage workflow. Function comments
-# use roxygen-style tags so the helper file can be migrated into an R
-# package with minimal restructuring.
+# and trajectory helpers used by the linkage workflow. 
 # ============================================================
 
 suppressPackageStartupMessages({
