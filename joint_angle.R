@@ -11,11 +11,14 @@ library(ggthemes)
 library(signal)
 library(cowplot)
 library(tidyverse)
+library(lme4)
+library(nationalparkcolors)
 
 # ============================================================
 # helpers
 # ============================================================
-
+ 
+source("linkage_helpers.R")
 angle_3D <- function(A, B, C, degrees = TRUE, tol = 1e-12) {
   v1 <- A - B
   v2 <- C - B
@@ -375,5 +378,54 @@ ggsave(
   width = 7
 )
 
+# ============================================================
+# lme model fitting sym angle ~ lat expansion
+# ============================================================
+
+
+fit <- lmer(
+  sym_angle ~ lat_exp +
+    (1 + lat_exp || fish), 
+  data = ang_dat,
+  REML = T,
+  control = lmerControl(optimizer = "bobyqa")
+)
+
+
+anova(fit)
+summary(fit)
+car::Anova(fit)
+coef(fit)
+
+pal <- nationalparkcolors::park_palette("Badlands",5)
+
+p_sym_lat <- ang_dat %>% 
+  mutate(sym_ang_fit=predict(fit)) %>% 
+  ggplot(aes(lat_exp,sym_angle,col=trial))+
+  geom_point(alpha=0.6)+
+  geom_smooth(alpha=0.6,method="lm",se=F)+
+  geom_line(aes(lat_exp,sym_ang_fit),col="black",linewidth = 1.5,alpha=0.8)+
+  facet_grid(
+    .~ fish,
+    scales = "free_y",
+    switch = "y"
+  )+
+  scale_color_manual(values=pal)+
+  theme_classic(15)+
+  theme(
+    strip.background = element_blank(),
+    strip.text.y = element_text(size = 12),
+    axis.text.y = element_text(size = 10),
+    legend.position = c(0.9,0.25)
+  )+
+  xlab("Lateral Expansion (%)")+
+  ylab("Symphyseal nangle (°)")
+
+ggsave(
+  filename = "manuscript/symlat.pdf",
+  plot = p_sym_lat,
+  height = 5,
+  width = 7
+)
 
 

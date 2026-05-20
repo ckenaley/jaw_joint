@@ -2646,8 +2646,6 @@ centroid_size_from_solution <- function(sol, points) {
   centroid_size(coords[, c("x", "y", "z")])
 }
 
-centroid_size_from_solution(sols[[2]], c("A","B","E"))
-
 #' Compute centroid size for selected points across a sequence of solver outputs.
 #'
 #' This helper is part of the linkage/volume workflow. It assumes coordinates are
